@@ -4,13 +4,13 @@ import sys
 import argparse
 from PIL import Image
 
-def verify(name, val1, val2, default):
+def verify(name, val1, val2, deflt):
     class Validity(argparse.Action):
         def __call__(self, parser, namespace, values, option_string=None):
             val = values
             if values < val1 or values > val2:
-                print("WARNING:",name, "must be between", val1,"and",val2,". Setting to default=", default)
-                val = default
+                print("WARNING:",name, "must be between", val1,"and",val2,". Setting to default=", deflt)
+                val = deflt
             setattr(namespace, self.dest, val)
     return Validity
 
@@ -18,8 +18,8 @@ def parseCommandArgs():
     parser = argparse.ArgumentParser(description="Estimates coordinates from the inner rectangle based on alpha transparent image.")
     parser.add_argument("image_file", help="input file (32-bit png)")
     parser.add_argument("-o", "--output", dest="output", required=False, help="output file (file to output uborder params)")
-    parser.add_argument("-s", "--step", type=int, metavar='INT[1,100]', help="search step size (bigger is faster, though less precise).", action=verify("step", 1, 100, 5))
-    parser.add_argument("-t", "--threshold", type=int, metavar='INT[1,255]', help="threshold below which transparent pixel is detected.", action=verify("threshold", 1, 255, 100))
+    parser.add_argument("-s", "--step", type=int, metavar='INT[1,100]', help="search step size (bigger is faster, though less precise).", action=verify("step", 1, 100, 5), default=5)
+    parser.add_argument("-t", "--threshold", type=int, metavar='INT[1,255]', help="threshold below which transparent pixel is detected.", action=verify("threshold", 1, 255, 100), default=100)
     parser.add_argument("-p", "--preview", action="store_true", help="print results and show an image with detected points in green.")
     return parser.parse_args()
 
@@ -132,14 +132,18 @@ def main():
 
         for i in range(-r, +r):
             for j in range(-r, r):
-                pixels.putpixel( (i +  left, j +   up), (r, 255, b, a) )
-                pixels.putpixel( (i + right, j +   up), (r, 255, b, a) )
-                pixels.putpixel( (i +  left, j + down), (r, 255, b, a) )
-                pixels.putpixel( (i + right, j + down), (r, 255, b, a) )
-                pixels.putpixel( (i+left, j+int((up+down)/2)), (r, 255, b, a) )
-                pixels.putpixel( (i+right, j+int((up+down)/2)), (r, 255, b, a) )
-                pixels.putpixel( (i+int((left+right)/2), j+up), (r, 255, b, a) )
-                pixels.putpixel( (i+int((left+right)/2), j+down), (r, 255, b, a) )
+                L = max(i +  left, 0)
+                U = max(j +    up, 0)
+                R = min(i + right, w-1)
+                D = min(j +  down, h-1)
+                pixels.putpixel( (L, U), (r, 255, b, a) )
+                pixels.putpixel( (R, U), (r, 255, b, a) )
+                pixels.putpixel( (L, D), (r, 255, b, a) )
+                pixels.putpixel( (R, D), (r, 255, b, a) )
+                pixels.putpixel( (L, j+int((up+down)/2)), (r, 255, b, a) )
+                pixels.putpixel( (R, j+int((up+down)/2)), (r, 255, b, a) )
+                pixels.putpixel( (i+int((left+right)/2), U), (r, 255, b, a) )
+                pixels.putpixel( (i+int((left+right)/2), D), (r, 255, b, a) )
 
         pixels.show()
 
